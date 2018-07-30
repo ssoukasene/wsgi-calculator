@@ -42,16 +42,61 @@ To submit your homework:
 """
 
 
+def instructions(*args):
+    """ Returns a STRING with the instructions """
+
+    return """
+    This online calculator can perform several operations:<br>
+    <br>
+    * Addition<br>
+    *  Subtractions<br>
+    * Multiplication<br>
+    * Division<br>
+    <br>
+    You can send appropriate requests with the operation and operands,<br>
+    and get back proper responses. For example, if you open a browser to the wsgi<br>
+    application at `http://localhost:8080/add/3/5' then the response<br>
+    body in the browser should be `8`.)
+    """
+
+
 def add(*args):
     """ Returns a STRING with the sum of the arguments """
 
     # TODO: Fill sum with the correct value, based on the
     # args provided.
-    sum = "0"
+    sum = args[0] + args[1]
 
-    return sum
+    return str(sum)
 
 # TODO: Add functions for handling more arithmetic operations.
+def subtract(*args):
+    """ Returns a STRING with the sum of the arguments """
+
+    # TODO: Fill sum with the correct value, based on the
+    # args provided.
+    difference = args[0] - args[1]
+
+    return str(difference)
+
+def multiply(*args):
+    """ Returns a STRING with the sum of the arguments """
+
+    # TODO: Fill sum with the correct value, based on the
+    # args provided.
+    product = args[0] * args[1]
+
+    return str(product)
+
+def divide(*args):
+    """ Returns a STRING with the sum of the arguments """
+
+    # TODO: Fill sum with the correct value, based on the
+    # args provided.
+    quotient = args[0] / args[1]
+
+    return str(quotient)
+
 
 def resolve_path(path):
     """
@@ -63,8 +108,21 @@ def resolve_path(path):
     # examples provide the correct *syntax*, but you should
     # determine the actual values of func and args using the
     # path.
-    func = add
-    args = ['25', '32']
+    # func = add
+    # args = ['25', '32']
+
+    # given that the path is something like:
+    # '/add/3/4/'
+    # '/divide/10/5/'
+    # return the function and an array of the arguments
+
+    path = path.strip('/').split('/')
+    func_name = path.pop(0)
+    # How to identify args as numbers instead of strings
+    # 
+    args = [int(arg) for arg in path]
+
+    func = {'': instructions, 'add': add, 'subtract': subtract, 'multiply': multiply, 'divide': divide}[func_name]  
 
     return func, args
 
@@ -73,7 +131,27 @@ def application(environ, start_response):
     # work here as well! Remember that your application must
     # invoke start_response(status, headers) and also return
     # the body of the response in BYTE encoding.
-    #
+    headers = [("Content-type", "text/html")]
+    try:
+        path = environ.get('PATH_INFO', None)
+        if path is None:
+            raise NameError
+        func, args = resolve_path(path)
+        body = func(*args)
+        status = "200 OK"
+    except NameError:
+        status = "404 Not Found"
+        body = "<h1>Not Found</h1>"
+    except Exception:
+        status = "500 Internal Server Error"
+        body = "<h1>Internal Server Error</h1>"
+        print(traceback.format_exc())
+    finally:
+        headers.append(('Content-length', str(len(body))))
+        start_response(status, headers)
+        return [body.encode('utf8')]
+
+
     # TODO (bonus): Add error handling for a user attempting
     # to divide by zero.
     pass
@@ -81,4 +159,7 @@ def application(environ, start_response):
 if __name__ == '__main__':
     # TODO: Insert the same boilerplate wsgiref simple
     # server creation that you used in the book database.
-    pass
+    # copied boiler plate from course content
+    from wsgiref.simple_server import make_server
+    srv = make_server('localhost', 8080, application)
+    srv.serve_forever()
